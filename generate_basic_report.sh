@@ -11,12 +11,10 @@ show_usage() {
 }
 
 [[ -z $1 ]] && show_usage && exit 1
-if [[ -b $1 ]] || (file $1 | grep -q character); then
-	dev=$1
-else
-	echo "$1 is neither a block nor a character device!"
+[[ -b $1 ]] && dev=$1 || {
+	echo "$1 is not a block device!"
 	exit 1
-fi
+}
 
 # Install software
 type smartctl &>/dev/null || sudo dnf install -y smartmontools
@@ -24,6 +22,7 @@ type smartctl &>/dev/null || sudo dnf install -y smartmontools
 # Query drive information
 sudo smartctl -i $dev &>/tmp/drive-insight.tmp
 
+# e.g.
 # Model Family:     Seagate Barracuda 7200.14 (AF)
 # Device Model:     ST1000DM003-9YN162
 # Serial Number:    W1D0BKVN
@@ -32,19 +31,18 @@ sudo smartctl -i $dev &>/tmp/drive-insight.tmp
 # ATA Version is:   ATA8-ACS T13/1699-D revision 4
 # Local Time is:    Tue Apr 30 21:18:09 2024 EDT
 
-dm=$(cat /tmp/drive-insight.tmp | grep 'Device Model' | awk '{print $3}')
-sn=$(cat /tmp/drive-insight.tmp | grep 'Serial Number' | awk '{print $3}')
+dm=$(cat /tmp/drive-insight.tmp | grep 'Device Model' | cut -d ':' -f 2- | sed 's/[^[:alnum:]]/-/g; s/^-*//; s/-*$//')
+sn=$(cat /tmp/drive-insight.tmp | grep 'Serial Number' | cut -d ':' -f 2- | sed 's/[^[:alnum:]]/-/g; s/^-*//; s/-*$//')
 
 mountpoints=$(lsblk --output MOUNTPOINTS $dev | grep '/')
 
 # Define logfile
-logfile=report_${dm}_${sn}_$(date +%Y%m%d%H%M%S).log
+logfile=report_${dm}_${sn}_$(date +%Y%m%d_%H%M%S).log
 
 # Define a list of commands
 commands=(
 	"uname -a"
-	"sudo smartctl -i $dev"
-	"sudo smartctl -a $dev"
+	"sudo smartctl -x $dev"
 	"sudo fdisk -l $dev"
 	"lsblk -p $dev"
 	"for mp in \$mountpoints; do df -kh \$mp; ls -la \$mp; done"

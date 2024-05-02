@@ -1,63 +1,87 @@
 #!/bin/bash
 
 # Description:
-#   Generate Basic Report for the Block Device.
+#   Generate a basic report for the block device.
 # Maintainer:
 #   Charles Shi <schrht@gmail.com>
 
 show_usage() {
-	echo "Usage:   $0 <block_device>"
-	echo "Example: $0 /dev/sdx"
+	script_name=$(basename "${BASH_SOURCE[0]}")
+	echo "Generate a basic report for the block device."
+	echo "Usage:   $script_name <block_device>"
+	echo "Example: $script_name /dev/sdx"
 }
 
+# Get the git version of this script
+git_version=$(git describe --all --long 2>/dev/null) || git_version="git-version-unknown"
+
+# Display usage if no block device is provided
 [[ -z $1 ]] && show_usage && exit 1
-[[ -b $1 ]] && dev=$1 || {
+
+# Check if the provided argument is a block device
+if [[ -b $1 ]]; then
+	dev=$1
+else
 	echo "$1 is not a block device!"
 	exit 1
-}
+fi
 
-# Install software
-type smartctl &>/dev/null || sudo dnf install -y smartmontools
+# Install smartmontools if not already installed
+if ! type smartctl &>/dev/null; then
+	if [[ -x $(command -v dnf) ]]; then
+		sudo dnf install -y smartmontools || {
+			echo "Error installing smartmontools."
+			exit 1
+		}
+	else
+		echo "smartctl not found and package manager not supported. Please install smartmontools manually."
+		exit 1
+	fi
+fi
 
-# Query drive information
-sudo smartctl -i $dev &>/tmp/drive-insight.tmp
+# Query device information using smartctl
+if ! output=$(sudo smartctl -i "$dev"); then
+	echo "Error retrieving device information."
+	exit 1
+fi
 
-# e.g.
-# Model Family:     Seagate Barracuda 7200.14 (AF)
-# Device Model:     ST1000DM003-9YN162
-# Serial Number:    W1D0BKVN
-# User Capacity:    1,000,204,886,016 bytes [1.00 TB]
-# Sector Sizes:     512 bytes logical, 4096 bytes physical
-# ATA Version is:   ATA8-ACS T13/1699-D revision 4
-# Local Time is:    Tue Apr 30 21:18:09 2024 EDT
+# Parsing device information
+dm=$(echo "$output" | grep 'Device Model' | cut -d ':' -f 2- | sed 's/[^[:alnum:]]/-/g; s/^-*//; s/-*$//')
+sn=$(echo "$output" | grep 'Serial Number' | cut -d ':' -f 2- | sed 's/[^[:alnum:]]/-/g; s/^-*//; s/-*$//')
 
-dm=$(cat /tmp/drive-insight.tmp | grep 'Device Model' | cut -d ':' -f 2- | sed 's/[^[:alnum:]]/-/g; s/^-*//; s/-*$//')
-sn=$(cat /tmp/drive-insight.tmp | grep 'Serial Number' | cut -d ':' -f 2- | sed 's/[^[:alnum:]]/-/g; s/^-*//; s/-*$//')
+# Get mount points for the device
+# shellcheck disable=SC2034  # Unused variables left for readability
+mountpoints=$(lsblk --output MOUNTPOINT "$dev" | grep '/')
 
-mountpoints=$(lsblk --output MOUNTPOINTS $dev | grep '/')
+# Set name for the report file
+rptfile="report_${dm}_${sn}_$(date +%Y%m%d_%H%M%S).log"
 
-# Define logfile
-logfile=report_${dm}_${sn}_$(date +%Y%m%d_%H%M%S).log
+# Log the git version to the report file
+echo -e "$(basename "${BASH_SOURCE[0]}"): ${git_version}\n" | tee -a "${rptfile}"
 
-# Define a list of commands
+# Define a list of commands to include in the report
 commands=(
 	"uname -a"
+	"smartctl --version"
+	"fdisk --version"
+	"lsblk --version"
 	"sudo smartctl -x $dev"
 	"sudo fdisk -l $dev"
 	"lsblk -p $dev"
 	"for mp in \$mountpoints; do df -kh \$mp; ls -la \$mp; done"
 )
 
-# Iterate over the list of commands
+# Iterate over the list of commands and execute them, appending output to the report file
 for cmd in "${commands[@]}"; do
-	# Show the command
-	echo "$cmd" | tee -a $logfile
-	echo ============ | tee -a $logfile
+	# Display the command being executed
+	echo "$cmd" | tee -a "${rptfile}"
+	echo "==============" | tee -a "${rptfile}"
 
-	# Execute the command
-	eval "$cmd" 2>&1 | tee -a $logfile
+	# Execute the command and capture both stdout and stderr, appending output to the report file
+	eval "$cmd" 2>&1 | tee -a "${rptfile}"
 
-	echo | tee -a $logfile
+	# Add an empty line after each command output in the report
+	echo | tee -a "${rptfile}"
 done
 
 exit 0

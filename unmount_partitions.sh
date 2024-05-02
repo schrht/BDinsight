@@ -5,14 +5,16 @@
 # Maintainer:
 #   Charles Shi <schrht@gmail.com>
 
-show_usage()
-{
+show_usage() {
 	echo "Usage:   $0 <block_device>"
 	echo "Example: $0 /dev/sdx"
 }
 
 [[ -z $1 ]] && show_usage && exit 1
-[[ -b $1 ]] && dev=$1 || { echo "$1 is not a block device!"; exit 1; }
+[[ -b $1 ]] && dev=$1 || {
+	echo "$1 is not a block device!"
+	exit 1
+}
 
 # Query mounted partitions
 echo "Querying mount points for '$dev' ..."
@@ -38,4 +40,3 @@ else
 	echo "No partitions are mounted to the system anymore."
 	exit 0
 fi
-

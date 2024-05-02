@@ -5,8 +5,7 @@
 # Maintainer:
 #   Charles Shi <schrht@gmail.com>
 
-show_usage()
-{
+show_usage() {
 	echo "Usage:   $0 <block_device>"
 	echo "Example: $0 /dev/sdx"
 }
@@ -64,4 +63,3 @@ for cmd in "${commands[@]}"; do
 done
 
 exit 0
-

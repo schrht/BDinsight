@@ -65,23 +65,24 @@ commands=(
 	"smartctl --version"
 	"fdisk --version"
 	"lsblk --version"
-	"sudo smartctl -x $dev"
-	"sudo fdisk -l $dev"
-	"lsblk -p $dev"
+	"sudo smartctl -x \$dev; echo \"Return Code = \$?\""
+	"sudo smartctl -q errorsonly -A -H -l selftest -l error \$dev; echo \"Return Code = \$?\""
+	"sudo fdisk -l \$dev"
+	"lsblk -p \$dev"
 	"for mp in \$mountpoints; do df -kh \$mp; ls -la \$mp; done"
 )
 
 # Iterate over the list of commands and execute them, appending output to the report file
 for cmd in "${commands[@]}"; do
 	# Display the command being executed
-	echo "$cmd" | tee -a "${rptfile}"
-	echo "==============" | tee -a "${rptfile}"
+	echo "$ $cmd" | tee -a "${rptfile}"
+	echo "----------------" | tee -a "${rptfile}"
 
 	# Execute the command and capture both stdout and stderr, appending output to the report file
 	eval "$cmd" 2>&1 | tee -a "${rptfile}"
 
-	# Add an empty line after each command output in the report
-	echo | tee -a "${rptfile}"
+	# Wrap up each command output in the report
+	echo -e "----------------\n" | tee -a "${rptfile}"
 done
 
 exit 0

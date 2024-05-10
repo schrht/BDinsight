@@ -11,12 +11,12 @@ echo "INFO: searching report file '$rptfile'..." >&2
 output=$(grep -n "^\$ .*${command_pattern}" "$rptfile")
 
 # Locate the command and get the line number
-if [[ $(echo "$output" | wc -l) = 0 ]]; then
+if [[ -z "$output" ]]; then
     echo -e "ERROR: No commands were found!" >&2
     exit 1
 elif [[ $(echo "$output" | wc -l) -gt 1 ]]; then
     echo -e "ERROR: Multiple commands were found, please update the command pattern you provided!" >&2
-    echo -e "ERROR: Search Results:\n${output}" >&2
+    echo -e "ERROR: Search Results (expecting 1, got $(echo "$output" | wc -l)):\n${output}" >&2
     exit 1
 fi
 

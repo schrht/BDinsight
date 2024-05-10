@@ -65,11 +65,12 @@ commands=(
 	"smartctl --version"
 	"fdisk --version"
 	"lsblk --version"
+	"sudo smartctl -a \$dev; echo \"Return Code = \$?\""
 	"sudo smartctl -x \$dev; echo \"Return Code = \$?\""
 	"sudo smartctl -q errorsonly -A -H -l selftest -l error \$dev; echo \"Return Code = \$?\""
 	"sudo fdisk -l \$dev"
 	"lsblk -p \$dev"
-	"for mp in \$mountpoints; do df -kh \$mp; ls -la \$mp; done"
+	"for mp in \$mountpoints; do df -kh \"\$mp\"; ls -la \"\$mp\"; done"
 )
 
 # Iterate over the list of commands and execute them, appending output to the report file

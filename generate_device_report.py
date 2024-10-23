@@ -101,6 +101,7 @@ def main(device, output_file):
         "smartctl --version",
         "fdisk --version",
         "lsblk --version",
+        "sudo smartctl -i {device}",
         "sudo smartctl -a --json=o {device}",
         "sudo smartctl -x --json=o {device}",
         "sudo smartctl -q errorsonly -A -H -l selftest -l error --json=o {device}",

@@ -102,7 +102,7 @@ def main(device, device_type="auto", output_file="report.json"):
         "smartctl --version",
         "fdisk --version",
         "lsblk --version",
-        "sudo smartctl -i {device} -d {device_type}",
+        "sudo smartctl -i --json=o {device} -d {device_type}",
         "sudo smartctl -a --json=o {device} -d {device_type}",
         "sudo smartctl -x --json=o {device} -d {device_type}",
         "sudo smartctl -q errorsonly -A -H -l selftest -l error --json=o {device} -d {device_type}",

@@ -10,10 +10,10 @@ def read_report(report_file):
         return json.load(f)
 
 
-def get_json_block(data, command):
+def get_command_json(data, command):
     """Retrieve the JSON block for the specified command line from the report."""
     for block in data.get("commands", []):
-        if block["command"] == command:
+        if command in block["command"]:
             return block
     return {}
 
@@ -28,7 +28,7 @@ def sat_checkpoints(data):
     """Perform SAT checkpoints based on SMART data."""
     failures = []
 
-    json_output = get_json_block(data, "sudo smartctl -a --json=o {device}").get(
+    json_output = get_command_json(data, "sudo smartctl -a --json=o {device}").get(
         "json_output", {}
     )
 
@@ -72,7 +72,7 @@ def common_checkpoints(data):
     failures = []
 
     # Check return code from the self-test command
-    smartctl_all_return_code = get_json_block(
+    smartctl_all_return_code = get_command_json(
         data, "sudo smartctl -a --json=o {device}"
     ).get("return_code")
 
@@ -81,7 +81,7 @@ def common_checkpoints(data):
     elif smartctl_all_return_code != 0:
         failures.append("smartctl-all command return code is not zero.")
 
-    smartctl_error_return_code = get_json_block(
+    smartctl_error_return_code = get_command_json(
         data, "sudo smartctl -q errorsonly -A -H -l selftest -l error --json=o {device}"
     ).get("return_code")
 
@@ -95,7 +95,7 @@ def common_checkpoints(data):
 
 def perform_checkpoints(data):
     device_type = (
-        get_json_block(data, "sudo smartctl -a --json=o {device}")
+        get_command_json(data, "sudo smartctl -a --json=o {device}")
         .get("json_output", {})
         .get("device", {})
         .get("type", "unknown")

@@ -66,32 +66,35 @@ def is_json(output):
         return False
 
 
-def get_device_info(device):
-    output, _, _, _ = run_command(f"sudo smartctl -i {device}")
-    return output
+def get_device_info(device, device_type="auto"):
+    cmd = f"sudo smartctl -i {device} -d {device_type}"
+    info, _, returncode, _ = run_command(cmd)
 
+    if returncode != 0:
+        print(f"ERROR: unable to get device information: '{cmd}' failed.")
+        exit(1)
 
-def parse_device_info(info):
     model = re.search(r"Device Model:\s*(.*)", info)
     serial_number = re.search(r"Serial Number:\s*(.*)", info)
-    return model.group(1).strip() if model else "Unknown", (
-        serial_number.group(1).strip() if serial_number else "Unknown"
-    )
+
+    device_info = {
+        "model": model.group(1).strip() if model else "Unknown",
+        "serial_number": serial_number.group(1).strip() if serial_number else "Unknown",
+    }
+
+    return device_info
 
 
-def main(device, output_file):
+def main(device, device_type="auto", output_file="report.json"):
     check_block_device(device)
 
     # Get device information
-    device_info = get_device_info(device)
-
-    # Parse device information
-    model, serial_number = parse_device_info(device_info)
+    device_info = get_device_info(device, device_type)
 
     report_data = {
         "script_name": "generate_device_report.py",
         "generated_on": datetime.datetime.now().isoformat(),
-        "device": {"model": model, "serial_number": serial_number},
+        "device": device_info,
         "commands": [],
     }
 
@@ -101,14 +104,14 @@ def main(device, output_file):
         "smartctl --version",
         "fdisk --version",
         "lsblk --version",
-        "sudo smartctl -i {device}",
-        "sudo smartctl -a --json=o {device}",
-        "sudo smartctl -x --json=o {device}",
-        "sudo smartctl -q errorsonly -A -H -l selftest -l error --json=o {device}",
+        "sudo smartctl -i {device} -d {device_type}",
+        "sudo smartctl -a --json=o {device} -d {device_type}",
+        "sudo smartctl -x --json=o {device} -d {device_type}",
+        "sudo smartctl -q errorsonly -A -H -l selftest -l error --json=o {device} -d {device_type}",
         "sudo fdisk -l {device}",
         "lsblk -p {device}",
     ]
-    parameters = {"device": device}
+    parameters = {"device": device, "device_type": device_type}
 
     # Iterate over the list of commands and execute them
     for cmd in commands:
@@ -123,6 +126,9 @@ def main(device, output_file):
             "time_used": time_used,
         }
 
+        if returncode != 0:
+            print(f"WARNING: '{cmd}' returns '{returncode}'.")
+
         # Check if the output is JSON and insert it into the command data
         if is_json(stdout):
             command_data["json_output"] = json.loads(stdout)
@@ -133,7 +139,7 @@ def main(device, output_file):
     with open(output_file, "w") as rpt:
         json.dump(report_data, rpt, indent=4)
 
-    print(f"Report generated: {output_file}")
+    print(f"INFO: Report generated: {output_file}")
 
 
 if __name__ == "__main__":
@@ -147,10 +153,18 @@ if __name__ == "__main__":
         help="Path to the block device (e.g., /dev/sdx)",
     )
     parser.add_argument(
+        "--device-type",
+        "-t",
+        required=False,
+        default="auto",
+        help="Type of the block device (e.g., auto, sat, nvme, ...)",
+    )
+    parser.add_argument(
         "--output",
         "-o",
-        required=True,
+        required=False,
+        default="report.json",
         help="Output file name for the report (e.g., report.json)",
     )
     args = parser.parse_args()
-    main(args.device, args.output)
+    main(args.device, args.device_type, args.output)

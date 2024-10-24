@@ -67,19 +67,17 @@ def is_json(output):
 
 
 def get_device_info(device, device_type="auto"):
-    cmd = f"sudo smartctl -i {device} -d {device_type}"
+    cmd = f"sudo smartctl --json -i {device} -d {device_type}"
     info, _, returncode, _ = run_command(cmd)
 
-    if returncode != 0:
+    if returncode != 0 or not is_json(info):
         print(f"ERROR: unable to get device information: '{cmd}' failed.")
         exit(1)
 
-    model = re.search(r"Device Model:\s*(.*)", info)
-    serial_number = re.search(r"Serial Number:\s*(.*)", info)
-
+    info = json.loads(info)
     device_info = {
-        "model": model.group(1).strip() if model else "Unknown",
-        "serial_number": serial_number.group(1).strip() if serial_number else "Unknown",
+        "model": info.get("model_name", "Unknown"),
+        "serial_number": info.get("serial_number", "Unknown"),
     }
 
     return device_info

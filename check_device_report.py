@@ -47,7 +47,7 @@ def sat_checkpoints(data):
 
     # Check Current_Pending_Sector
     pending = None
-    for attr in data.get("ata_smart_attributes", {}).get("table", []):
+    for attr in json_output.get("ata_smart_attributes", {}).get("table", []):
         if attr["name"] == "Current_Pending_Sector":
             pending = attr["raw"]["value"]
             if pending > 0:

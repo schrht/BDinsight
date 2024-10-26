@@ -111,6 +111,7 @@ def main(device, device_type="auto", output_file="report.json"):
         "git_version": get_git_version(),
         "generated_on": datetime.datetime.now().isoformat(),
         "device": device_info,
+        "notes": "",
         "commands": [],
     }
 

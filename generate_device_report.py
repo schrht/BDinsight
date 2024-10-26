@@ -23,6 +23,23 @@ def show_usage():
     print("Example: generate_device_report.py --device /dev/sdx --output report.json")
 
 
+def get_git_version():
+    try:
+        # Run the git command to get the current commit version
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+            cwd=".",  # Change to the root directory of the script
+        )
+        return (
+            result.stdout.decode().strip()
+        )  # Decode the output and remove any surrounding whitespace
+    except subprocess.CalledProcessError:
+        return "Unknown"  # Return 'Unknown' if the command fails
+
+
 def check_block_device(device):
     if not os.path.exists(device):
         print(f"{device} does not exist!")
@@ -91,6 +108,7 @@ def main(device, device_type="auto", output_file="report.json"):
 
     report_data = {
         "script_name": "generate_device_report.py",
+        "git_version": get_git_version(),
         "generated_on": datetime.datetime.now().isoformat(),
         "device": device_info,
         "commands": [],

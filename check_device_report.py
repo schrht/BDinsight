@@ -79,7 +79,7 @@ def common_checkpoints(data):
     if smartctl_all_return_code is None:
         print("WARN: unable to get the return code of smartctl-all command.")
     elif smartctl_all_return_code != 0:
-        failures.append("smartctl-all command return code is not zero.")
+        failures.append(f"smartctl-all command return code ({smartctl_all_return_code}) is not zero.")
 
     smartctl_error_return_code = get_command_json(
         data, "sudo smartctl -q errorsonly -A -H -l selftest -l error --json=o {device}"
@@ -88,7 +88,7 @@ def common_checkpoints(data):
     if smartctl_error_return_code is None:
         print("WARN: unable to get the return code of smartctl-error command.")
     elif smartctl_error_return_code != 0:
-        failures.append("smartctl-error command return code is not zero.")
+        failures.append(f"smartctl-error command return code ({smartctl_error_return_code}) is not zero.")
 
     return failures
 

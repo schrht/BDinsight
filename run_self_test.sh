@@ -21,10 +21,10 @@ fi
 [[ -n $2 ]] && type=$2 || type=short
 
 # Trigger the self-test
-if sudo smartctl -t "$type" "$dev"; then
+if sudo smartctl -t "$type" "$dev" -d sat; then
 	echo -e "\nThe self-test for '$dev' has been triggered."
 	echo -e "Run 'sudo smartctl -l selftest ${dev}' to get the report by then."
-	watch -c -d -b -e -n 5 sudo smartctl -l selftest "${dev}"
+	watch -c -d -b -e -n 5 sudo smartctl -l selftest "${dev}" -d sat
 	exit 0
 else
 	echo -e "\nFail to trigger the self-test."
